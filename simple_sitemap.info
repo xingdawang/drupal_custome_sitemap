@@ -1,0 +1,5 @@
+name = Simple sitemap
+description = Use Main Menu to generate sitemap page
+core = 7.x
+version = "7.x-0.1"
+project = "simple_sitemap"

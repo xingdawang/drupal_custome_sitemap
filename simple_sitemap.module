@@ -1,0 +1,133 @@
+<?php
+/**
+ * @file
+ * A block that help to generate sitemap page from main menu
+ */
+
+/**
+ * Setup the block info
+ */
+function simple_sitemap_block_info() {
+	$blocks = array();
+	$blocks['simple_sitemap'] = array(
+		'info' => t('Simple Sitemap Block'),
+		'cache' => DRUPAL_NO_CACHE
+	);
+	return $blocks;
+}
+
+
+/**
+ * Setup the block view to make it visible
+ */
+function simple_sitemap_block_view($delta = '') {
+	$block = array();
+	switch ($delta) {
+	    case 'simple_sitemap':
+	    	// Setup main menu tree
+			$menu_tree = simple_sitemap_get_menus('main-menu');
+			// Setup global footer menu
+			$menu_global_footer = simple_sitemap_get_footer_menus('menu-global-footer');
+			// Setup utility menu
+			$utility_menu = simple_sitemap_get_footer_menus('menu-utility-menu');
+			// Add main menu tree
+			$block['content'] = "<div class='sitemap_section'>". simple_sitemap_restructure($menu_tree["menu_tree"]);
+			$main_menu_list = simple_sitemap_get_main_menu_list($menu_tree["menu_tree"]);
+			// Add global footer menu
+			$block['content'] .="<ul class='sitemap'>";
+			foreach ($menu_global_footer as $footer_menu) {
+				if (!strpos($main_menu_list, ("'".$footer_menu['title']."'"))) {
+					$block['content'] .= "<li>".l($footer_menu['title'], $footer_menu['link']). "</li>";
+				}
+			}
+			$block['content'] .="</ul>";
+			$block['content'] .= "</div>";
+      		break;
+	}
+	return $block;
+}
+
+/**
+ * Get the menu tree
+ */
+function simple_sitemap_get_menus($menu_name){
+	$menu_tree = array(
+		"menu_tree"	=> menu_tree_output(menu_tree_page_data($menu_name))
+	);
+	return $menu_tree;
+}
+
+/**
+ * Get the footer menus
+ */
+function simple_sitemap_get_footer_menus($menu_name){
+	// Get menu tree
+	$gloabl_footer_menu = array(
+		"gloabl_footer_menu" => menu_tree_output(menu_tree_page_data($menu_name))
+	);
+
+	// Change menu tree to menu list
+	$menu_list = array();
+	foreach($gloabl_footer_menu['gloabl_footer_menu'] as $menu){
+		if ($menu["#title"]) {
+			$menu = array(
+			"title" => $menu["#title"],
+			"link" => $menu['#href'],
+			"visited" => false
+		);
+		array_push($menu_list, $menu);
+		}
+	}
+	// dpm($menu_list);
+	return $menu_list;
+}
+
+/**
+ * Get Main menu list
+ */
+// variable_set($main_menu_list, array();
+function simple_sitemap_get_main_menu_list($menu_tree) {
+	$main_menu_list = ' ';
+	foreach ($menu_tree as $leaf) {
+		if ($leaf['#title']) {
+			// array_push($main_menu_list, $leaf['#title']);
+			$main_menu_list .= ("'".$leaf['#title']."' ");
+			if($leaf['#below']) {
+				// array_push($main_menu_list, simple_sitemap_get_main_menu_list($leaf['#below']));
+				$main_menu_list .= simple_sitemap_get_main_menu_list($leaf["#below"]);
+			}
+		}	
+	}
+	return $main_menu_list;
+}
+/**
+ * Check menu whether appeared outside of the main menu
+ */
+function simple_sitemap_check_menu($menu_list, $menu_tile){
+	foreach ($menu_list as $menu) {
+		if ($menu['title'] == $menu_tile) {
+			$menu['visited'] = true;
+		}
+	}
+	return $menu_list;
+}
+
+/**
+ * Restructure main menu tree
+ */
+function simple_sitemap_restructure($menu_tree){
+	$output = "<ul class='sitemap'>";
+	// Add main menu
+	foreach ($menu_tree as $leaf) {
+		if($leaf["#title"]){
+			$output .= "<li>" 
+				.l($leaf["#title"], $leaf["#href"]);
+			if ($leaf["#below"]) {
+				$output .= simple_sitemap_restructure($leaf["#below"]);
+			}
+			$output .= "</li>";
+		}
+	}
+	$output .= "</ul>";
+	return $output;
+}
